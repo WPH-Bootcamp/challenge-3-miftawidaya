@@ -40,11 +40,24 @@ const userProfile = {
   joinDate: '',
   totalHabits: 0,
   completedThisWeek: 0,
-  updateStats(hatbits) {
-    //
+
+  updateStats(habits) {
+    this.totalHabits = habits.length;
+
+    this.completedThisWeek = habits.filter((habit) =>
+      habit.isCompletedThisWeek()
+    ).length;
   },
+
   getDaysJoined() {
-    //
+    if (!this.joinDate) return 0;
+
+    const now = new Date();
+    const joined = new Date(this.joinDate);
+    const diffTime = Math.abs(now - joined);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    return diffDays;
   },
 };
 
@@ -160,6 +173,18 @@ async function handleMenu(tracker) {}
 // TODO: Buat async function main()
 async function main() {
   displayBanner();
+
+  console.log('TESTING USER PROFILE');
+  userProfile.name = 'Mifta Widaya';
+  userProfile.joinDate = new Date('2025-11-01').toISOString();
+
+  console.log('Nama:', userProfile.name);
+  console.log('Join Date:', userProfile.joinDate);
+  console.log('Days Joined:', userProfile.getDaysJoined(), 'hari');
+
+  userProfile.updateStats([]);
+  console.log('Total Habits:', userProfile.totalHabits);
+  console.log('Completed This Week:', userProfile.completedThisWeek);
 }
 
 // TODO: Jalankan main() dengan error handling
