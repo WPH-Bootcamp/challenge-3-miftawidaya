@@ -146,6 +146,10 @@ function displayBanner() {
   console.log('[ WELCOME TO HABIT TRACKER CLI ]');
 }
 
+function displaySeparator(char = '=', length = 50) {
+  console.log(char.repeat(length));
+}
+
 // TODO: Buat function displayMenu()
 function displayMenu() {
   console.log('\n' + '='.repeat(50));
@@ -174,7 +178,17 @@ async function handleMenu(tracker) {}
 async function main() {
   displayBanner();
 
+  testUserProfile();
+}
+
+// TODO: Jalankan main() dengan error handling
+main();
+
+function testUserProfile() {
+  displaySeparator();
   console.log('TESTING USER PROFILE');
+  displaySeparator();
+
   userProfile.name = 'Mifta Widaya';
   userProfile.joinDate = new Date('2025-11-01').toISOString();
 
@@ -186,6 +200,3 @@ async function main() {
   console.log('Total Habits:', userProfile.totalHabits);
   console.log('Completed This Week:', userProfile.completedThisWeek);
 }
-
-// TODO: Jalankan main() dengan error handling
-main();
