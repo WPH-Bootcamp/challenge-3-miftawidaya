@@ -51,14 +51,19 @@ const userProfile = {
 // HABIT CLASS
 // ============================================
 class Habit {
-  constructor(name, targetFrequency) {
+  constructor(name, targetFrequency, category = 'Umum') {
     this.id = Date.now() + Math.random();
     this.name = name;
     this.targetFrequency = targetFrequency;
+    this.category = category; // dukungan kategori sederhana per kebiasaan
     this.completions = [];
+    this.streak = 0; // jumlah hari berturut-turut diselesaikan
+    this.lastCompletionDate = null; // disimpan sebagai ISO string
     this.createdAt = new Date().toISOString();
   }
 
+  // Menandai kebiasaan selesai untuk hari ini.
+  // Menghindari duplikasi dengan memeriksa penyelesaian di tanggal yang sama.
   markComplete() {
     const today = new Date().toDateString();
 
@@ -66,14 +71,45 @@ class Habit {
       return new Date(c).toDateString() === today;
     });
 
+    // Jika sudah ada penyelesaian hari ini, hentikan.
+    // Catatan: find() mengembalikan undefined jika tidak ketemu; ?? false menjaga nilai boolean eksplisit.
     if (alreadyCompleted ?? false) {
       return false;
     }
 
-    this.completions.push(new Date().toISOString());
+    // Simpan timestamp penyelesaian saat ini
+    const nowIso = new Date().toISOString();
+    this.completions.push(nowIso);
+
+    // Perbarui streak:
+    // - Jika terakhir selesai adalah kemarin, streak + 1
+    // - Jika tidak, reset ke 1 (hari ini dianggap awal streak baru)
+    try {
+      const last = this.lastCompletionDate
+        ? new Date(this.lastCompletionDate)
+        : null;
+      const todayDate = new Date();
+      const yesterday = new Date(todayDate);
+      yesterday.setDate(todayDate.getDate() - 1);
+
+      if (last && last.toDateString() === yesterday.toDateString()) {
+        this.streak = (this.streak || 0) + 1;
+      } else {
+        this.streak = 1;
+      }
+
+      this.lastCompletionDate = nowIso;
+    } catch (e) {
+      // Jika terjadi error parsing tanggal, amankan dengan reset streak
+      this.streak = 1;
+      this.lastCompletionDate = nowIso;
+    }
+
     return true;
   }
 
+  // Menghitung jumlah penyelesaian dalam satu "pekan bergerak"
+  // Pekan dihitung 7 hari ke belakang termasuk hari ini, mulai pukul 00:00.
   getThisWeekCompletions() {
     const now = new Date();
     const startOfWeek = new Date(now);
@@ -91,6 +127,7 @@ class Habit {
     return this.getThisWeekCompletions() >= this.targetFrequency;
   }
 
+  // Menghitung persentase progres terhadap target mingguan.
   getProgressPercentage() {
     const completions = this.getThisWeekCompletions();
     const percentage = (completions / this.targetFrequency) * 100;
@@ -123,6 +160,7 @@ class HabitTracker {
     this.loadFromFile();
   }
 
+  // Menambah kebiasaan baru dengan validasi nama dan target frekuensi.
   addHabit(name, frequency) {
     const habitNameTrim = typeof name === 'string' ? name.trim() : '';
     if (!habitNameTrim) {
@@ -136,9 +174,10 @@ class HabitTracker {
     const targetFrequency =
       !Number.isNaN(parsedFreq) && parsedFreq > 0 ? parsedFreq : 1;
 
-    // keep nullish coalescing usage where reasonable
+    // Gunakan nilai yang diberikan, jika null/undefined fallback ke hasil trim
     const habitName = name ?? habitNameTrim;
 
+    // Kategori default adalah 'Umum' bila tidak disediakan saat pembuatan
     const habit = new Habit(habitName, targetFrequency);
     this.habits.push(habit);
     this.saveToFile();
@@ -147,8 +186,28 @@ class HabitTracker {
     return true;
   }
 
+  // Mengekspor snapshot data saat ini ke file JSON bertimestamp.
+  exportData() {
+    try {
+      const ts = new Date().toISOString().replace(/[:.]/g, '-');
+      const outFile = path.join(__dirname, `habits-export-${ts}.json`);
+      const data = {
+        exportedAt: new Date().toISOString(),
+        userProfile,
+        habits: this.habits,
+      };
+      fs.writeFileSync(outFile, JSON.stringify(data, null, 2), 'utf8');
+      console.log(`\nData berhasil diekspor ke: ${outFile}`);
+      return outFile;
+    } catch (err) {
+      console.error('Gagal mengekspor data:', err.message);
+      return null;
+    }
+  }
+
+  // Menandai sebuah habit selesai berdasarkan nomor urut yang ditampilkan.
   completeHabit(habitIndex) {
-    // Validate habitIndex (should be integer within range)
+    // Validasi nomor habit: harus integer dan dalam rentang daftar
     if (
       !Number.isInteger(habitIndex) ||
       habitIndex < 1 ||
@@ -186,6 +245,7 @@ class HabitTracker {
     console.log(`\nHabit "${habitName}" berhasil dihapus.`);
   }
 
+  // Menampilkan profil pengguna dan ringkasan statistik dasar.
   displayProfile() {
     userProfile.updateStats(this.habits);
 
@@ -221,6 +281,11 @@ class HabitTracker {
       filteredHabits.forEach((habit, index) => {
         const originalIndex = this.habits.indexOf(habit) + 1;
         console.log(`\n${originalIndex}. [${habit.getStatus()}] ${habit.name}`);
+        console.log(
+          `   Kategori: ${habit.category || 'Umum'} | Streak: ${
+            habit.streak || 0
+          }`
+        );
         console.log(`   Target: ${habit.targetFrequency}x/minggu`);
         console.log(
           `   Progress: ${habit.getThisWeekCompletions()}/${
@@ -234,6 +299,7 @@ class HabitTracker {
     displaySeparator(true, true);
   }
 
+  // Demo menampilkan kebiasaan menggunakan while-loop
   displayHabitsWithWhile() {
     displaySeparator(true);
     console.log('DEMO: MENAMPILKAN HABITS DENGAN WHILE LOOP');
@@ -253,6 +319,7 @@ class HabitTracker {
     displaySeparator(false, true);
   }
 
+  // Demo menampilkan kebiasaan menggunakan for-loop
   displayHabitsWithFor() {
     displaySeparator(true);
     console.log('DEMO: MENAMPILKAN HABITS DENGAN FOR LOOP');
@@ -270,6 +337,7 @@ class HabitTracker {
     displaySeparator(false, true);
   }
 
+  // Menampilkan statistik agregat menggunakan beragam metode array.
   displayStats() {
     userProfile.updateStats(this.habits);
 
@@ -304,6 +372,7 @@ class HabitTracker {
     displaySeparator(false, true);
   }
 
+  // Mengaktifkan pengingat otomatis setiap REMINDER_INTERVAL milidetik.
   startReminder() {
     if (this.reminderInterval) {
       console.log('\nReminder sudah aktif.');
@@ -317,6 +386,7 @@ class HabitTracker {
     console.log('\nReminder diaktifkan. Akan muncul setiap 10 detik.');
   }
 
+  // Menampilkan pengingat acak untuk kebiasaan yang belum diselesaikan hari ini.
   showReminder() {
     const today = new Date().toDateString();
     const incompleteToday = this.habits.filter((habit) => {
@@ -335,6 +405,7 @@ class HabitTracker {
     }
   }
 
+  // Menonaktifkan pengingat jika sedang aktif.
   stopReminder() {
     if (this.reminderInterval) {
       clearInterval(this.reminderInterval);
@@ -345,6 +416,7 @@ class HabitTracker {
     }
   }
 
+  // Menyimpan userProfile dan daftar habits ke file JSON.
   saveToFile() {
     try {
       const data = {
@@ -359,6 +431,7 @@ class HabitTracker {
     }
   }
 
+  // Memuat data dari file JSON (jika ada) dan merestorasi state aplikasi.
   loadFromFile() {
     try {
       if (fs.existsSync(DATA_FILE)) {
@@ -368,9 +441,12 @@ class HabitTracker {
         Object.assign(userProfile, data.userProfile);
 
         this.habits = data.habits.map((habitData) => {
+          // Gunakan nullish coalescing untuk menjaga default saat data tidak lengkap
           const name = habitData.name ?? 'Unnamed Habit';
           const freq = habitData.targetFrequency ?? 1;
-          const habit = new Habit(name, freq);
+          const category = habitData.category ?? 'Umum';
+          const habit = new Habit(name, freq, category);
+          // Pulihkan properti yang tersimpan (completions, streak, lastCompletionDate, createdAt, id)
           Object.assign(habit, habitData);
           return habit;
         });
@@ -381,6 +457,7 @@ class HabitTracker {
     }
   }
 
+  // Menghapus seluruh data habits dan mereset statistik profil.
   clearAllData() {
     this.habits = [];
     userProfile.totalHabits = 0;
@@ -525,6 +602,15 @@ async function handleMenu(tracker) {
         break;
 
       case '0':
+        // Offer to export data before exit
+        {
+          const doExport = await askQuestion(
+            'Ekspor data sebelum keluar? (y/n): '
+          );
+          if (doExport.toLowerCase() === 'y') {
+            tracker.exportData();
+          }
+        }
         tracker.stopReminder();
         console.log('\nTerima kasih telah menggunakan Habit Tracker.');
         console.log('Data Anda telah tersimpan.\n');
