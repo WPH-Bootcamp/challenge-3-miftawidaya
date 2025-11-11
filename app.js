@@ -8,15 +8,12 @@
 
 // TODO: Import module yang diperlukan
 // HINT: readline, fs, path
-import readline from 'node:readline';
-import fs from 'node:fs';
-import path, { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+const readline = require('readline');
+const fs = require('fs');
+const path = require('path');
 
 // TODO: Definisikan konstanta
 // HINT: DATA_FILE, REMINDER_INTERVAL, DAYS_IN_WEEK
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 const DATA_FILE = path.join(__dirname, 'habits-data.json');
 const REMINDER_INTERVAL = 10000; // 10 seconds
 const DAYS_IN_WEEK = 7;
@@ -112,7 +109,7 @@ class Habit {
   getThisWeekCompletions() {
     const now = new Date();
     const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setDate(now.getDate() - (DAYS_IN_WEEK - 1));
     startOfWeek.setHours(0, 0, 0, 0);
 
     // KONSEP: filter() - filter completion dari minggu ini
@@ -238,14 +235,14 @@ class HabitTracker {
   displayProfile() {
     userProfile.updateStats(this.habits);
 
-    displaySeparator();
+    displaySeparator(true);
     console.log('USER PROFILE');
     displaySeparator();
     console.log(`Nama: ${userProfile.name}`);
     console.log(`Bergabung: ${userProfile.getDaysJoined()} hari yang lalu`);
     console.log(`Total Habits: ${userProfile.totalHabits}`);
     console.log(`Selesai Minggu Ini: ${userProfile.completedThisWeek}`);
-    displaySeparator();
+    displaySeparator(false, true);
   }
 
   // Method untuk menampilkan habits dengan filter
@@ -263,7 +260,7 @@ class HabitTracker {
       title = 'KEBIASAAN SELESAI';
     }
 
-    displaySeparator();
+    displaySeparator(true);
     console.log(title);
     displaySeparator();
 
@@ -284,13 +281,13 @@ class HabitTracker {
       });
     }
 
-    displaySeparator();
+    displaySeparator(true, true);
   }
 
   // Method untuk demo menampilkan habits dengan while loop
   // KONSEP: while loop
   displayHabitsWithWhile() {
-    displaySeparator();
+    displaySeparator(true);
     console.log('DEMO: MENAMPILKAN HABITS DENGAN WHILE LOOP');
     displaySeparator();
 
@@ -306,13 +303,13 @@ class HabitTracker {
       }
     }
 
-    displaySeparator();
+    displaySeparator(false, true);
   }
 
   // Method untuk demo menampilkan habits dengan for loop
   // KONSEP: for loop
   displayHabitsWithFor() {
-    displaySeparator();
+    displaySeparator(true);
     console.log('DEMO: MENAMPILKAN HABITS DENGAN FOR LOOP');
     displaySeparator();
 
@@ -326,7 +323,7 @@ class HabitTracker {
       }
     }
 
-    displaySeparator();
+    displaySeparator(false, true);
   }
 
   // Method untuk menampilkan statistik
@@ -334,7 +331,7 @@ class HabitTracker {
   displayStats() {
     userProfile.updateStats(this.habits);
 
-    displaySeparator();
+    displaySeparator(true);
     console.log('STATISTIK KEBIASAAN');
     displaySeparator();
 
@@ -368,7 +365,7 @@ class HabitTracker {
       console.log(`Rata-rata Progress: ${Math.round(avgProgress)}%`);
     }
 
-    displaySeparator();
+    displaySeparator(false, true);
   }
 
   // Method untuk memulai reminder system
@@ -403,9 +400,9 @@ class HabitTracker {
     if (incompleteToday.length > 0) {
       const randomHabit =
         incompleteToday[Math.floor(Math.random() * incompleteToday.length)];
-      displaySeparator();
+      displaySeparator(true);
       console.log(`REMINDER: Jangan lupa "${randomHabit.name}"!`);
-      displaySeparator();
+      displaySeparator(false, true);
     }
   }
 
@@ -484,13 +481,10 @@ function askQuestion(question) {
   });
 }
 
-function displaySeparator(
-  char = SEPARATOR_CHAR,
-  length = SEPARATOR_LENGTH,
-  topSpace = false,
-  bottomSpace = false
-) {
-  const separator = char.repeat(length);
+function displaySeparator(topSpace = false, bottomSpace = false) {
+  const char = SEPARATOR_CHAR;
+  const separator = char.repeat(SEPARATOR_LENGTH);
+
   const top = topSpace ? '\n' : '';
   const bottom = bottomSpace ? '\n' : '';
   console.log(top + separator + bottom);
@@ -504,7 +498,7 @@ function displayBanner() {
 
 // TODO: Buat function displayMenu()
 function displayMenu() {
-  displaySeparator();
+  displaySeparator(true);
   console.log('HABIT TRACKER - MAIN MENU');
   displaySeparator();
   console.log('1. Lihat Profil');
@@ -517,7 +511,7 @@ function displayMenu() {
   console.log('8. Lihat Statistik');
   console.log('9. Demo Loop (while/for)');
   console.log('0. Keluar');
-  displaySeparator();
+  displaySeparator(false, true);
 }
 
 // TODO: Buat async function handleMenu(tracker)
@@ -589,7 +583,7 @@ async function handleMenu(tracker) {
     }
 
     if (running) {
-      await askQuestion('\nTekan Enter untuk melanjutkan...');
+      await askQuestion('\nTekan Enter untuk melanjutkan...\n');
     }
   }
 }
@@ -620,227 +614,11 @@ async function main() {
 
   tracker.startReminder();
   await handleMenu(tracker);
-
-  // testUserProfile();
-  // testHabitClass();
-  // testHabitTracker();
 }
 
 // TODO: Jalankan main() dengan error handling
-try {
-  await main();
-} catch (error) {
+main().catch((error) => {
   console.error('\nFatal Error:', error.message);
   rl.close();
   process.exit(1);
-}
-
-function testUserProfile() {
-  displaySeparator();
-  console.log('TESTING USER PROFILE');
-  displaySeparator();
-
-  userProfile.name = 'Mifta Widaya';
-  userProfile.joinDate = new Date('2025-11-01').toISOString();
-
-  console.log('Nama:', userProfile.name);
-  console.log('Join Date:', userProfile.joinDate);
-  console.log('Days Joined:', userProfile.getDaysJoined(), 'hari');
-
-  userProfile.updateStats([]);
-  console.log('Total Habits:', userProfile.totalHabits);
-  console.log('Completed This Week:', userProfile.completedThisWeek);
-}
-function testHabitClass() {
-  displaySeparator();
-  console.log('TESTING HABIT CLASS');
-  displaySeparator();
-
-  const habit1 = new Habit('Minum Air 8 Gelas', 7);
-  console.log('Habit dibuat:', habit1.name);
-  console.log('Target:', habit1.targetFrequency + 'x/minggu');
-  console.log('Status:', habit1.getStatus());
-  console.log('Progress:', habit1.getProgressPercentage() + '%');
-  console.log('Progress Bar:', habit1.getProgressBar());
-  console.log();
-
-  // Mark complete
-  console.log('Menandai habit selesai...');
-  habit1.markComplete();
-  console.log('Hari ke-1 selesai!');
-  console.log('Status:', habit1.getStatus());
-  console.log('Progress:', habit1.getProgressPercentage() + '%');
-  console.log('Progress Bar:', habit1.getProgressBar());
-  console.log();
-
-  const result = habit1.markComplete();
-  console.log(
-    'Coba mark lagi:',
-    result ? 'Berhasil' : 'Gagal (sudah di-mark hari ini)'
-  );
-  console.log();
-
-  // Simulasi beberapa hari
-  console.log('Simulasi beberapa hari...');
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  habit1.completions.push(yesterday.toISOString());
-
-  const twoDaysAgo = new Date();
-  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-  habit1.completions.push(twoDaysAgo.toISOString());
-
-  console.log('Total minggu ini:', habit1.getThisWeekCompletions() + 'x');
-  console.log('Status:', habit1.getStatus());
-  console.log('Progress:', habit1.getProgressPercentage() + '%');
-  console.log('Progress Bar:', habit1.getProgressBar());
-  console.log();
-
-  // habit selesai
-  const habit2 = new Habit('Olahraga', 3);
-  habit2.completions = [
-    new Date().toISOString(),
-    new Date(Date.now() - 86400000).toISOString(),
-    new Date(Date.now() - 172800000).toISOString(),
-  ];
-
-  console.log('Habit 2:', habit2.name);
-  console.log('Total minggu ini:', habit2.getThisWeekCompletions() + 'x');
-  console.log('Status:', habit2.getStatus());
-  console.log('Progress:', habit2.getProgressPercentage() + '%');
-  console.log('Progress Bar:', habit2.getProgressBar());
-}
-function testHabitTracker() {
-  displaySeparator();
-  console.log('TESTING HABIT TRACKER CLASS');
-  displaySeparator();
-
-  // Create a new HabitTracker instance
-  const tracker = new HabitTracker();
-  console.log('HabitTracker instance created');
-  console.log('Initial habits count:', tracker.habits.length);
-  console.log();
-
-  // Test addHabit
-  console.log('=== TEST: addHabit ===');
-  tracker.addHabit('Membaca Buku', 5);
-  tracker.addHabit('Olahraga', 3);
-  tracker.addHabit('Meditasi', 7);
-  console.log('Total habits after adding:', tracker.habits.length);
-  console.log('Habit names:', tracker.habits.map((h) => h.name).join(', '));
-  console.log();
-
-  // Test completeHabit
-  console.log('=== TEST: completeHabit ===');
-  tracker.completeHabit(1);
-  tracker.completeHabit(1); // Try to complete again (should fail)
-  tracker.completeHabit(2);
-  console.log(
-    'Habit 1 completions:',
-    tracker.habits[0].getThisWeekCompletions()
-  );
-  console.log(
-    'Habit 2 completions:',
-    tracker.habits[1].getThisWeekCompletions()
-  );
-  console.log();
-
-  // Test displayHabits with different filters
-  console.log('=== TEST: displayHabits (all) ===');
-  tracker.displayHabits();
-  console.log();
-
-  console.log('=== TEST: displayHabits (active) ===');
-  tracker.displayHabits('active');
-  console.log();
-
-  console.log('=== TEST: displayHabits (completed) ===');
-  tracker.displayHabits('completed');
-  console.log();
-
-  // Test displayProfile
-  console.log('=== TEST: displayProfile ===');
-  tracker.displayProfile();
-  console.log();
-
-  // Test displayStats
-  console.log('=== TEST: displayStats ===');
-  tracker.displayStats();
-  console.log();
-
-  // Test completeHabit multiple times to complete a habit
-  console.log('=== TEST: Complete habit multiple times ===');
-  const habit = tracker.habits[1]; // Olahraga (target: 3x)
-  console.log('Completing habit:', habit.name);
-  console.log('Target frequency:', habit.targetFrequency);
-
-  // Complete 3 times to meet target
-  for (let i = 0; i < 3; i++) {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - i);
-    habit.completions.push(yesterday.toISOString());
-  }
-
-  console.log('Completions this week:', habit.getThisWeekCompletions());
-  console.log('Status:', habit.getStatus());
-  console.log('Is completed this week:', habit.isCompletedThisWeek());
-  console.log();
-
-  // Test displayHabits after completion
-  console.log('=== TEST: displayHabits after completion ===');
-  tracker.displayHabits('completed');
-  console.log();
-
-  // Test deleteHabit
-  console.log('=== TEST: deleteHabit ===');
-  console.log('Habits before delete:', tracker.habits.length);
-  tracker.deleteHabit(3);
-  console.log('Habits after delete:', tracker.habits.length);
-  console.log();
-
-  // Test invalid index
-  console.log('=== TEST: Invalid index handling ===');
-  tracker.completeHabit(999); // Should handle gracefully
-  tracker.deleteHabit(999); // Should handle gracefully
-  console.log();
-
-  // Test addHabit with null values (nullish coalescing)
-  console.log('=== TEST: addHabit with null values ===');
-  tracker.addHabit(null, null);
-  console.log('Last habit name:', tracker.habits.at(-1).name);
-  console.log('Last habit frequency:', tracker.habits.at(-1).targetFrequency);
-  console.log();
-
-  // Test displayHabitsWithWhile
-  console.log('=== TEST: displayHabitsWithWhile ===');
-  tracker.displayHabitsWithWhile();
-  console.log();
-
-  // Test displayHabitsWithFor
-  console.log('=== TEST: displayHabitsWithFor ===');
-  tracker.displayHabitsWithFor();
-  console.log();
-
-  // Test saveToFile and loadFromFile
-  console.log('=== TEST: saveToFile and loadFromFile ===');
-  tracker.saveToFile();
-  console.log('Data saved to file');
-
-  const tracker2 = new HabitTracker();
-  console.log('New tracker loaded from file');
-  console.log('Loaded habits count:', tracker2.habits.length);
-  console.log(
-    'Loaded habit names:',
-    tracker2.habits.map((h) => h.name).join(', ')
-  );
-  console.log();
-
-  // Test clearAllData
-  console.log('=== TEST: clearAllData ===');
-  console.log('Habits before clear:', tracker.habits.length);
-  tracker.clearAllData();
-  console.log('Habits after clear:', tracker.habits.length);
-  console.log();
-
-  console.log('=== ALL TESTS COMPLETED ===');
-}
+});
