@@ -8,15 +8,20 @@
 
 // TODO: Import module yang diperlukan
 // HINT: readline, fs, path
-const readline = require('readline');
-const fs = require('fs');
-const path = require('path');
+import readline from 'node:readline';
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // TODO: Definisikan konstanta
 // HINT: DATA_FILE, REMINDER_INTERVAL, DAYS_IN_WEEK
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const DATA_FILE = path.join(__dirname, 'habits-data.json');
 const REMINDER_INTERVAL = 10000; // 10 seconds
 const DAYS_IN_WEEK = 7;
+const SEPARATOR_LENGTH = 50;
+const SEPARATOR_CHAR = '=';
 
 // TODO: Setup readline interface
 const rl = readline.createInterface({
@@ -233,14 +238,14 @@ class HabitTracker {
   displayProfile() {
     userProfile.updateStats(this.habits);
 
-    console.log('\n' + '='.repeat(50));
+    displaySeparator();
     console.log('USER PROFILE');
-    console.log('='.repeat(50));
+    displaySeparator();
     console.log(`Nama: ${userProfile.name}`);
     console.log(`Bergabung: ${userProfile.getDaysJoined()} hari yang lalu`);
     console.log(`Total Habits: ${userProfile.totalHabits}`);
     console.log(`Selesai Minggu Ini: ${userProfile.completedThisWeek}`);
-    console.log('='.repeat(50) + '\n');
+    displaySeparator();
   }
 
   // Method untuk menampilkan habits dengan filter
@@ -258,9 +263,9 @@ class HabitTracker {
       title = 'KEBIASAAN SELESAI';
     }
 
-    console.log('\n' + '='.repeat(50));
+    displaySeparator();
     console.log(title);
-    console.log('='.repeat(50));
+    displaySeparator();
 
     if (filteredHabits.length === 0) {
       console.log('Tidak ada kebiasaan untuk ditampilkan.');
@@ -279,7 +284,7 @@ class HabitTracker {
       });
     }
 
-    console.log('\n' + '='.repeat(50) + '\n');
+    displaySeparator();
   }
 
   // Method untuk demo menampilkan habits dengan while loop
@@ -329,9 +334,9 @@ class HabitTracker {
   displayStats() {
     userProfile.updateStats(this.habits);
 
-    console.log('\n' + '='.repeat(50));
+    displaySeparator();
     console.log('STATISTIK KEBIASAAN');
-    console.log('='.repeat(50));
+    displaySeparator();
 
     // KONSEP: map() - transform habit data menjadi array nama
     const habitNames = this.habits.map((h) => h.name);
@@ -363,7 +368,7 @@ class HabitTracker {
       console.log(`Rata-rata Progress: ${Math.round(avgProgress)}%`);
     }
 
-    console.log('='.repeat(50) + '\n');
+    displaySeparator();
   }
 
   // Method untuk memulai reminder system
@@ -398,9 +403,9 @@ class HabitTracker {
     if (incompleteToday.length > 0) {
       const randomHabit =
         incompleteToday[Math.floor(Math.random() * incompleteToday.length)];
-      console.log('\n' + '='.repeat(50));
+      displaySeparator();
       console.log(`REMINDER: Jangan lupa "${randomHabit.name}"!`);
-      console.log('='.repeat(50) + '\n');
+      displaySeparator();
     }
   }
 
@@ -473,15 +478,22 @@ class HabitTracker {
 // TODO: Buat function askQuestion(question)
 function askQuestion(question) {
   return new Promise((resolve) => {
-    rl.question(question + ' ', (answer) => {
+    rl.question(question, (answer) => {
       resolve(answer);
-      rl.close();
     });
   });
 }
 
-function displaySeparator(char = '=', length = 50) {
-  console.log(char.repeat(length));
+function displaySeparator(
+  char = SEPARATOR_CHAR,
+  length = SEPARATOR_LENGTH,
+  topSpace = false,
+  bottomSpace = false
+) {
+  const separator = char.repeat(length);
+  const top = topSpace ? '\n' : '';
+  const bottom = bottomSpace ? '\n' : '';
+  console.log(top + separator + bottom);
 }
 
 function displayBanner() {
@@ -509,23 +521,119 @@ function displayMenu() {
 }
 
 // TODO: Buat async function handleMenu(tracker)
-async function handleMenu(tracker) {}
+async function handleMenu(tracker) {
+  let running = true;
+
+  while (running) {
+    displayMenu();
+    const choice = await askQuestion('Pilih menu (0-9): ');
+
+    switch (choice) {
+      case '1':
+        tracker.displayProfile();
+        break;
+
+      case '2':
+        tracker.displayHabits('all');
+        break;
+
+      case '3':
+        tracker.displayHabits('active');
+        break;
+
+      case '4':
+        tracker.displayHabits('completed');
+        break;
+
+      case '5':
+        const habitName = await askQuestion('Nama kebiasaan: ');
+        const frequency = await askQuestion('Target per minggu: ');
+        tracker.addHabit(habitName, parseInt(frequency) || 1);
+        break;
+
+      case '6':
+        tracker.displayHabits('all');
+        const completeIndex = await askQuestion(
+          'Nomor habit yang diselesaikan: '
+        );
+        tracker.completeHabit(parseInt(completeIndex));
+        break;
+
+      case '7':
+        tracker.displayHabits('all');
+        const deleteIndex = await askQuestion(
+          'Nomor habit yang akan dihapus: '
+        );
+        tracker.deleteHabit(parseInt(deleteIndex));
+        break;
+
+      case '8':
+        tracker.displayStats();
+        break;
+
+      case '9':
+        tracker.displayHabitsWithWhile();
+        tracker.displayHabitsWithFor();
+        break;
+
+      case '0':
+        tracker.stopReminder();
+        console.log('\nTerima kasih telah menggunakan Habit Tracker.');
+        console.log('Data Anda telah tersimpan.\n');
+        running = false;
+        rl.close();
+        break;
+
+      default:
+        console.log('\nPilihan tidak valid. Silakan pilih 0-9.\n');
+    }
+
+    if (running) {
+      await askQuestion('\nTekan Enter untuk melanjutkan...');
+    }
+  }
+}
 
 // ============================================
 // MAIN FUNCTION
 // ============================================
 // TODO: Buat async function main()
 async function main() {
+  console.clear();
+
   displayBanner();
-  // displayMenu();
+
+  const tracker = new HabitTracker();
+
+  // Tambah data demo jika belum ada data
+  if (tracker.habits.length === 0) {
+    const addDemo = await askQuestion(
+      'Tidak ada data. Tambahkan data demo? (y/n): '
+    );
+    if (addDemo.toLowerCase() === 'y') {
+      tracker.addHabit('Minum Air 8 Gelas', 7);
+      tracker.addHabit('Baca Buku 30 Menit', 5);
+      tracker.addHabit('Olahraga Pagi', 3);
+      console.log('\nData demo berhasil ditambahkan.');
+    }
+  }
+
+  tracker.startReminder();
+  await handleMenu(tracker);
 
   // testUserProfile();
   // testHabitClass();
-  testHabitTracker();
+  // testHabitTracker();
 }
 
 // TODO: Jalankan main() dengan error handling
-main();
+try {
+  await main();
+} catch (error) {
+  console.error('\nFatal Error:', error.message);
+  rl.close();
+  process.exit(1);
+}
 
 function testUserProfile() {
   displaySeparator();
