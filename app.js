@@ -17,7 +17,6 @@ const path = require('path');
 const DATA_FILE = path.join(__dirname, 'habits-data.json');
 const REMINDER_INTERVAL = 10000; // 10 seconds
 const DAYS_IN_WEEK = 7;
-const PROGRESS_BAR_WIDTH = 10;
 
 // TODO: Setup readline interface
 const rl = readline.createInterface({
@@ -35,28 +34,31 @@ const rl = readline.createInterface({
 // - completedThisWeek
 // TODO: Tambahkan method updateStats(habits)
 // TODO: Tambahkan method getDaysJoined()
+
+// KONSEP: Objek Dasar, Date, filter()
 const userProfile = {
-  name: '',
-  joinDate: '',
+  name: 'User',
+  joinDate: new Date().toISOString(),
   totalHabits: 0,
   completedThisWeek: 0,
 
+  // Method untuk update statistik berdasarkan habits
+  // KONSEP: filter() untuk menghitung completed habits
   updateStats(habits) {
     this.totalHabits = habits.length;
-
-    this.completedThisWeek = habits.filter((habit) =>
-      habit.isCompletedThisWeek()
+    // KONSEP: filter() - filter habits yang completed this week
+    this.completedThisWeek = habits.filter((h) =>
+      h.isCompletedThisWeek()
     ).length;
   },
 
+  // Method untuk menghitung berapa hari sejak join
+  // KONSEP: Date manipulation
   getDaysJoined() {
-    if (!this.joinDate) return 0;
-
-    const now = new Date();
-    const joined = new Date(this.joinDate);
-    const diffTime = Math.abs(now - joined);
+    const joinDate = new Date(this.joinDate);
+    const today = new Date();
+    const diffTime = Math.abs(today - joinDate);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
     return diffDays;
   },
 };
@@ -71,18 +73,78 @@ const userProfile = {
 // - Method isCompletedThisWeek()
 // - Method getProgressPercentage()
 // - Method getStatus()
+
+// KONSEP: Class, Array, Date, filter(), find()
 class Habit {
-  constructor(name) {
+  constructor(name, targetFrequency) {
+    this.id = Date.now() + Math.random();
     this.name = name;
+    this.targetFrequency = targetFrequency;
+    this.completions = [];
+    this.createdAt = new Date().toISOString();
   }
 
+  // Method untuk menandai habit selesai hari ini
+  // KONSEP: Array manipulation, Date, find()
   markComplete() {
-    console.log();
+    const today = new Date().toDateString();
+    // KONSEP: find() - cek apakah sudah complete hari ini
+    const alreadyCompleted = this.completions.find((c) => {
+      return new Date(c).toDateString() === today;
+    });
+
+    // KONSEP: Nullish coalescing
+    if (alreadyCompleted ?? false) {
+      return false;
+    }
+
+    this.completions.push(new Date().toISOString());
+    return true;
   }
-  getThisWeekCompletions() {}
-  isCompletedThisWeek() {}
-  getProgressPresentage() {}
-  getStatus() {}
+
+  // Method untuk mendapatkan jumlah completion minggu ini
+  // KONSEP: filter(), Date
+  getThisWeekCompletions() {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    // KONSEP: filter() - filter completion dari minggu ini
+    return this.completions.filter((c) => {
+      const completionDate = new Date(c);
+      return completionDate >= startOfWeek;
+    }).length;
+  }
+
+  // Method untuk cek apakah habit sudah complete minggu ini
+  isCompletedThisWeek() {
+    return this.getThisWeekCompletions() >= this.targetFrequency;
+  }
+
+  // Method untuk menghitung persentase progress
+  getProgressPercentage() {
+    const completions = this.getThisWeekCompletions();
+    const percentage = (completions / this.targetFrequency) * 100;
+    return Math.min(percentage, 100);
+  }
+
+  // Method untuk mendapatkan status habit
+  getStatus() {
+    return this.isCompletedThisWeek() ? 'Selesai' : 'Aktif';
+  }
+
+  // Helper method untuk generate progress bar
+  getProgressBar() {
+    const percentage = this.getProgressPercentage();
+    const filledBlocks = Math.round(percentage / 10);
+    const emptyBlocks = 10 - filledBlocks;
+
+    const filled = '█'.repeat(filledBlocks);
+    const empty = '░'.repeat(emptyBlocks);
+
+    return `${filled}${empty} ${Math.round(percentage)}%`;
+  }
 }
 
 // ============================================
@@ -142,19 +204,21 @@ function askQuestion(question) {
   });
 }
 
-function displayBanner() {
-  console.log('[ WELCOME TO HABIT TRACKER CLI ]');
-}
-
 function displaySeparator(char = '=', length = 50) {
   console.log(char.repeat(length));
 }
 
+function displayBanner() {
+  displaySeparator();
+  console.log('[ WELCOME TO HABIT TRACKER CLI ]');
+  displaySeparator();
+}
+
 // TODO: Buat function displayMenu()
 function displayMenu() {
-  console.log('\n' + '='.repeat(50));
+  displaySeparator();
   console.log('HABIT TRACKER - MAIN MENU');
-  console.log('='.repeat(50));
+  displaySeparator();
   console.log('1. Lihat Profil');
   console.log('2. Lihat Semua Kebiasaan');
   console.log('3. Lihat Kebiasaan Aktif');
@@ -165,7 +229,7 @@ function displayMenu() {
   console.log('8. Lihat Statistik');
   console.log('9. Demo Loop (while/for)');
   console.log('0. Keluar');
-  console.log('='.repeat(50) + '\n');
+  displaySeparator();
 }
 
 // TODO: Buat async function handleMenu(tracker)
@@ -177,8 +241,10 @@ async function handleMenu(tracker) {}
 // TODO: Buat async function main()
 async function main() {
   displayBanner();
+  displayMenu();
 
   testUserProfile();
+  testHabitClass();
 }
 
 // TODO: Jalankan main() dengan error handling
@@ -199,4 +265,64 @@ function testUserProfile() {
   userProfile.updateStats([]);
   console.log('Total Habits:', userProfile.totalHabits);
   console.log('Completed This Week:', userProfile.completedThisWeek);
+}
+
+function testHabitClass() {
+  displaySeparator();
+  console.log('TESTING HABIT CLASS');
+  displaySeparator();
+
+  const habit1 = new Habit('Minum Air 8 Gelas', 7);
+  console.log('Habit dibuat:', habit1.name);
+  console.log('Target:', habit1.targetFrequency + 'x/minggu');
+  console.log('Status:', habit1.getStatus());
+  console.log('Progress:', habit1.getProgressPercentage() + '%');
+  console.log('Progress Bar:', habit1.getProgressBar());
+  console.log();
+
+  // Mark complete
+  console.log('Menandai habit selesai...');
+  habit1.markComplete();
+  console.log('Hari ke-1 selesai!');
+  console.log('Status:', habit1.getStatus());
+  console.log('Progress:', habit1.getProgressPercentage() + '%');
+  console.log('Progress Bar:', habit1.getProgressBar());
+  console.log();
+
+  const result = habit1.markComplete();
+  console.log(
+    'Coba mark lagi:',
+    result ? 'Berhasil' : 'Gagal (sudah di-mark hari ini)'
+  );
+  console.log();
+
+  // Simulasi beberapa hari
+  console.log('Simulasi beberapa hari...');
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  habit1.completions.push(yesterday.toISOString());
+
+  const twoDaysAgo = new Date();
+  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+  habit1.completions.push(twoDaysAgo.toISOString());
+
+  console.log('Total minggu ini:', habit1.getThisWeekCompletions() + 'x');
+  console.log('Status:', habit1.getStatus());
+  console.log('Progress:', habit1.getProgressPercentage() + '%');
+  console.log('Progress Bar:', habit1.getProgressBar());
+  console.log();
+
+  // habit selesai
+  const habit2 = new Habit('Olahraga', 3);
+  habit2.completions = [
+    new Date().toISOString(),
+    new Date(Date.now() - 86400000).toISOString(),
+    new Date(Date.now() - 172800000).toISOString(),
+  ];
+
+  console.log('Habit 2:', habit2.name);
+  console.log('Total minggu ini:', habit2.getThisWeekCompletions() + 'x');
+  console.log('Status:', habit2.getStatus());
+  console.log('Progress:', habit2.getProgressPercentage() + '%');
+  console.log('Progress Bar:', habit2.getProgressBar());
 }
