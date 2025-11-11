@@ -124,24 +124,41 @@ class HabitTracker {
   }
 
   addHabit(name, frequency) {
-    const habitName = name ?? 'Unnamed Habit';
-    const targetFrequency = frequency ?? 1;
+    const habitNameTrim = typeof name === 'string' ? name.trim() : '';
+    if (!habitNameTrim) {
+      console.log('\nNama kebiasaan tidak boleh kosong.');
+      return false;
+    }
+
+    const parsedFreq = Number.isInteger(frequency)
+      ? frequency
+      : parseInt(frequency, 10);
+    const targetFrequency =
+      !Number.isNaN(parsedFreq) && parsedFreq > 0 ? parsedFreq : 1;
+
+    // keep nullish coalescing usage where reasonable
+    const habitName = name ?? habitNameTrim;
 
     const habit = new Habit(habitName, targetFrequency);
     this.habits.push(habit);
     this.saveToFile();
 
     console.log(`\nHabit "${habitName}" berhasil ditambahkan.`);
+    return true;
   }
 
   completeHabit(habitIndex) {
-    const habit = this.habits[habitIndex - 1] ?? null;
-
-    if (!habit) {
-      console.log('\nHabit tidak ditemukan.');
+    // Validate habitIndex (should be integer within range)
+    if (
+      !Number.isInteger(habitIndex) ||
+      habitIndex < 1 ||
+      habitIndex > this.habits.length
+    ) {
+      console.log('\nNomor habit tidak valid.');
       return;
     }
 
+    const habit = this.habits[habitIndex - 1];
     const success = habit.markComplete();
     if (success) {
       this.saveToFile();
@@ -152,14 +169,17 @@ class HabitTracker {
   }
 
   deleteHabit(habitIndex) {
-    const habit = this.habits[habitIndex - 1] ?? null;
-
-    if (!habit) {
-      console.log('\nHabit tidak ditemukan.');
+    // Validate habitIndex
+    if (
+      !Number.isInteger(habitIndex) ||
+      habitIndex < 1 ||
+      habitIndex > this.habits.length
+    ) {
+      console.log('\nNomor habit tidak valid.');
       return;
     }
 
-    const habitName = habit.name;
+    const habitName = this.habits[habitIndex - 1].name;
     this.habits.splice(habitIndex - 1, 1);
     this.saveToFile();
 
@@ -348,7 +368,9 @@ class HabitTracker {
         Object.assign(userProfile, data.userProfile);
 
         this.habits = data.habits.map((habitData) => {
-          const habit = new Habit(habitData.name, habitData.targetFrequency);
+          const name = habitData.name ?? 'Unnamed Habit';
+          const freq = habitData.targetFrequency ?? 1;
+          const habit = new Habit(name, freq);
           Object.assign(habit, habitData);
           return habit;
         });
@@ -436,25 +458,61 @@ async function handleMenu(tracker) {
         break;
 
       case '5':
-        const habitName = await askQuestion('Nama kebiasaan: ');
-        const frequency = await askQuestion('Target per minggu: ');
-        tracker.addHabit(habitName, parseInt(frequency) || 1);
+        {
+          let inputName = await askQuestion('Nama kebiasaan: ');
+          inputName = (inputName || '').trim();
+          if (!inputName) {
+            console.log('\nNama kebiasaan tidak boleh kosong.');
+            break;
+          }
+          const frequencyInput = await askQuestion('Target per minggu: ');
+          let freqNum = parseInt(frequencyInput, 10);
+          if (Number.isNaN(freqNum) || freqNum <= 0) {
+            console.log(
+              '\nTarget harus bilangan bulat positif. Menggunakan default 1.'
+            );
+            freqNum = 1;
+          }
+          tracker.addHabit(inputName, freqNum);
+        }
         break;
 
       case '6':
         tracker.displayHabits('all');
-        const completeIndex = await askQuestion(
-          'Nomor habit yang diselesaikan: '
-        );
-        tracker.completeHabit(parseInt(completeIndex));
+        {
+          const completeIndexInput = await askQuestion(
+            'Nomor habit yang diselesaikan: '
+          );
+          const completeIndex = parseInt(completeIndexInput, 10);
+          if (
+            !Number.isInteger(completeIndex) ||
+            completeIndex < 1 ||
+            completeIndex > tracker.habits.length
+          ) {
+            console.log('\nNomor habit tidak valid.');
+            break;
+          }
+          tracker.completeHabit(completeIndex);
+        }
         break;
 
       case '7':
         tracker.displayHabits('all');
-        const deleteIndex = await askQuestion(
-          'Nomor habit yang akan dihapus: '
-        );
-        tracker.deleteHabit(parseInt(deleteIndex));
+        {
+          const deleteIndexInput = await askQuestion(
+            'Nomor habit yang akan dihapus: '
+          );
+          const deleteIndex = parseInt(deleteIndexInput, 10);
+          if (
+            !Number.isInteger(deleteIndex) ||
+            deleteIndex < 1 ||
+            deleteIndex > tracker.habits.length
+          ) {
+            console.log('\nNomor habit tidak valid.');
+            break;
+          }
+          tracker.deleteHabit(deleteIndex);
+        }
         break;
 
       case '8':
