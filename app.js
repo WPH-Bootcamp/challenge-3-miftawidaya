@@ -6,21 +6,16 @@
 // TANGGAL: 7 November 2025
 // ============================================
 
-// TODO: Import module yang diperlukan
-// HINT: readline, fs, path
 const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
 
-// TODO: Definisikan konstanta
-// HINT: DATA_FILE, REMINDER_INTERVAL, DAYS_IN_WEEK
 const DATA_FILE = path.join(__dirname, 'habits-data.json');
 const REMINDER_INTERVAL = 10000; // 10 seconds
 const DAYS_IN_WEEK = 7;
 const SEPARATOR_LENGTH = 50;
 const SEPARATOR_CHAR = '=';
 
-// TODO: Setup readline interface
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
@@ -29,33 +24,20 @@ const rl = readline.createInterface({
 // ============================================
 // USER PROFILE OBJECT
 // ============================================
-// TODO: Buat object userProfile dengan properties:
-// - name
-// - joinDate
-// - totalHabits
-// - completedThisWeek
-// TODO: Tambahkan method updateStats(habits)
-// TODO: Tambahkan method getDaysJoined()
-
-// KONSEP: Objek Dasar, Date, filter()
 const userProfile = {
   name: 'User',
   joinDate: new Date().toISOString(),
   totalHabits: 0,
   completedThisWeek: 0,
 
-  // Method untuk update statistik berdasarkan habits
-  // KONSEP: filter() untuk menghitung completed habits
   updateStats(habits) {
     this.totalHabits = habits.length;
-    // KONSEP: filter() - filter habits yang completed this week
+
     this.completedThisWeek = habits.filter((h) =>
       h.isCompletedThisWeek()
     ).length;
   },
 
-  // Method untuk menghitung berapa hari sejak join
-  // KONSEP: Date manipulation
   getDaysJoined() {
     const joinDate = new Date(this.joinDate);
     const today = new Date();
@@ -68,15 +50,6 @@ const userProfile = {
 // ============================================
 // HABIT CLASS
 // ============================================
-// TODO: Buat class Habit dengan:
-// - Constructor yang menerima name dan targetFrequency
-// - Method markComplete()
-// - Method getThisWeekCompletions()
-// - Method isCompletedThisWeek()
-// - Method getProgressPercentage()
-// - Method getStatus()
-
-// KONSEP: Class, Array, Date, filter(), find()
 class Habit {
   constructor(name, targetFrequency) {
     this.id = Date.now() + Math.random();
@@ -86,16 +59,13 @@ class Habit {
     this.createdAt = new Date().toISOString();
   }
 
-  // Method untuk menandai habit selesai hari ini
-  // KONSEP: Array manipulation, Date, find()
   markComplete() {
     const today = new Date().toDateString();
-    // KONSEP: find() - cek apakah sudah complete hari ini
+
     const alreadyCompleted = this.completions.find((c) => {
       return new Date(c).toDateString() === today;
     });
 
-    // KONSEP: Nullish coalescing
     if (alreadyCompleted ?? false) {
       return false;
     }
@@ -104,39 +74,33 @@ class Habit {
     return true;
   }
 
-  // Method untuk mendapatkan jumlah completion minggu ini
-  // KONSEP: filter(), Date
   getThisWeekCompletions() {
     const now = new Date();
     const startOfWeek = new Date(now);
+
     startOfWeek.setDate(now.getDate() - (DAYS_IN_WEEK - 1));
     startOfWeek.setHours(0, 0, 0, 0);
 
-    // KONSEP: filter() - filter completion dari minggu ini
     return this.completions.filter((c) => {
       const completionDate = new Date(c);
       return completionDate >= startOfWeek;
     }).length;
   }
 
-  // Method untuk cek apakah habit sudah complete minggu ini
   isCompletedThisWeek() {
     return this.getThisWeekCompletions() >= this.targetFrequency;
   }
 
-  // Method untuk menghitung persentase progress
   getProgressPercentage() {
     const completions = this.getThisWeekCompletions();
     const percentage = (completions / this.targetFrequency) * 100;
     return Math.min(percentage, 100);
   }
 
-  // Method untuk mendapatkan status habit
   getStatus() {
     return this.isCompletedThisWeek() ? 'Selesai' : 'Aktif';
   }
 
-  // Helper method untuk generate progress bar
   getProgressBar() {
     const percentage = this.getProgressPercentage();
     const filledBlocks = Math.round(percentage / 10);
@@ -152,36 +116,14 @@ class Habit {
 // ============================================
 // HABIT TRACKER CLASS
 // ============================================
-// TODO: Buat class HabitTracker dengan:
-// - Constructor
-// - Method addHabit(name, frequency)
-// - Method completeHabit(habitIndex)
-// - Method deleteHabit(habitIndex)
-// - Method displayProfile()
-// - Method displayHabits(filter)
-// - Method displayHabitsWithWhile()
-// - Method displayHabitsWithFor()
-// - Method displayStats()
-// - Method startReminder()
-// - Method showReminder()
-// - Method stopReminder()
-// - Method saveToFile()
-// - Method loadFromFile()
-// - Method clearAllData()
-
-// KONSEP: Class, Array methods, setInterval, JSON, Nullish coalescing
 class HabitTracker {
-  // Constructor untuk inisialisasi
   constructor() {
     this.habits = [];
     this.reminderInterval = null;
     this.loadFromFile();
   }
 
-  // Method untuk menambah habit baru
-  // KONSEP: Array push, Nullish coalescing
   addHabit(name, frequency) {
-    // KONSEP: Nullish coalescing - provide default values
     const habitName = name ?? 'Unnamed Habit';
     const targetFrequency = frequency ?? 1;
 
@@ -192,10 +134,7 @@ class HabitTracker {
     console.log(`\nHabit "${habitName}" berhasil ditambahkan.`);
   }
 
-  // Method untuk menandai habit selesai
-  // KONSEP: Array indexing, Nullish coalescing
   completeHabit(habitIndex) {
-    // KONSEP: Nullish coalescing - safe array access
     const habit = this.habits[habitIndex - 1] ?? null;
 
     if (!habit) {
@@ -212,10 +151,7 @@ class HabitTracker {
     }
   }
 
-  // Method untuk menghapus habit
-  // KONSEP: Array splice
   deleteHabit(habitIndex) {
-    // KONSEP: Nullish coalescing
     const habit = this.habits[habitIndex - 1] ?? null;
 
     if (!habit) {
@@ -230,8 +166,6 @@ class HabitTracker {
     console.log(`\nHabit "${habitName}" berhasil dihapus.`);
   }
 
-  // Method untuk menampilkan profil user
-  // KONSEP: Object methods, Date
   displayProfile() {
     userProfile.updateStats(this.habits);
 
@@ -245,13 +179,10 @@ class HabitTracker {
     displaySeparator(false, true);
   }
 
-  // Method untuk menampilkan habits dengan filter
-  // KONSEP: filter(), forEach()
   displayHabits(filter) {
     let filteredHabits = this.habits;
     let title = 'SEMUA KEBIASAAN';
 
-    // KONSEP: filter() berdasarkan tipe
     if (filter === 'active') {
       filteredHabits = this.habits.filter((h) => !h.isCompletedThisWeek());
       title = 'KEBIASAAN AKTIF';
@@ -267,7 +198,6 @@ class HabitTracker {
     if (filteredHabits.length === 0) {
       console.log('Tidak ada kebiasaan untuk ditampilkan.');
     } else {
-      // KONSEP: forEach() untuk iterasi
       filteredHabits.forEach((habit, index) => {
         const originalIndex = this.habits.indexOf(habit) + 1;
         console.log(`\n${originalIndex}. [${habit.getStatus()}] ${habit.name}`);
@@ -284,8 +214,6 @@ class HabitTracker {
     displaySeparator(true, true);
   }
 
-  // Method untuk demo menampilkan habits dengan while loop
-  // KONSEP: while loop
   displayHabitsWithWhile() {
     displaySeparator(true);
     console.log('DEMO: MENAMPILKAN HABITS DENGAN WHILE LOOP');
@@ -294,7 +222,6 @@ class HabitTracker {
     if (this.habits.length === 0) {
       console.log('Tidak ada kebiasaan untuk ditampilkan.');
     } else {
-      // KONSEP: while loop
       let i = 0;
       while (i < this.habits.length) {
         const habit = this.habits[i];
@@ -306,8 +233,6 @@ class HabitTracker {
     displaySeparator(false, true);
   }
 
-  // Method untuk demo menampilkan habits dengan for loop
-  // KONSEP: for loop
   displayHabitsWithFor() {
     displaySeparator(true);
     console.log('DEMO: MENAMPILKAN HABITS DENGAN FOR LOOP');
@@ -316,7 +241,6 @@ class HabitTracker {
     if (this.habits.length === 0) {
       console.log('Tidak ada kebiasaan untuk ditampilkan.');
     } else {
-      // KONSEP: for loop
       for (let i = 0; i < this.habits.length; i++) {
         const habit = this.habits[i];
         console.log(`${i + 1}. ${habit.name} - ${habit.getStatus()}`);
@@ -326,8 +250,6 @@ class HabitTracker {
     displaySeparator(false, true);
   }
 
-  // Method untuk menampilkan statistik
-  // KONSEP: map(), filter(), forEach()
   displayStats() {
     userProfile.updateStats(this.habits);
 
@@ -335,27 +257,21 @@ class HabitTracker {
     console.log('STATISTIK KEBIASAAN');
     displaySeparator();
 
-    // KONSEP: map() - transform habit data menjadi array nama
     const habitNames = this.habits.map((h) => h.name);
     console.log(`\nDaftar Habits: ${habitNames.join(', ') || 'Belum ada'}`);
 
-    // KONSEP: filter() - dapatkan active habits
     const activeHabits = this.habits.filter((h) => !h.isCompletedThisWeek());
     console.log(`Total Habits Aktif: ${activeHabits.length}`);
 
-    // KONSEP: filter() - dapatkan completed habits
     const completedHabits = this.habits.filter((h) => h.isCompletedThisWeek());
     console.log(`Total Habits Selesai: ${completedHabits.length}`);
 
-    // Hitung total completions menggunakan forEach
     let totalCompletions = 0;
-    // KONSEP: forEach() untuk aggregate data
     this.habits.forEach((habit) => {
       totalCompletions += habit.getThisWeekCompletions();
     });
     console.log(`Total Penyelesaian Minggu Ini: ${totalCompletions}`);
 
-    // Hitung rata-rata progress
     if (this.habits.length > 0) {
       const totalProgress = this.habits.reduce(
         (sum, h) => sum + h.getProgressPercentage(),
@@ -368,15 +284,12 @@ class HabitTracker {
     displaySeparator(false, true);
   }
 
-  // Method untuk memulai reminder system
-  // KONSEP: setInterval
   startReminder() {
     if (this.reminderInterval) {
       console.log('\nReminder sudah aktif.');
       return;
     }
 
-    // KONSEP: setInterval - reminder setiap 10 detik
     this.reminderInterval = setInterval(() => {
       this.showReminder();
     }, REMINDER_INTERVAL);
@@ -384,13 +297,9 @@ class HabitTracker {
     console.log('\nReminder diaktifkan. Akan muncul setiap 10 detik.');
   }
 
-  // Method untuk menampilkan reminder
-  // KONSEP: filter(), find()
   showReminder() {
-    // KONSEP: filter() - dapatkan habits yang belum complete hari ini
     const today = new Date().toDateString();
     const incompleteToday = this.habits.filter((habit) => {
-      // KONSEP: find() - cek apakah sudah complete hari ini
       const completedToday = habit.completions.find((c) => {
         return new Date(c).toDateString() === today;
       });
@@ -406,7 +315,6 @@ class HabitTracker {
     }
   }
 
-  // Method untuk menghentikan reminder
   stopReminder() {
     if (this.reminderInterval) {
       clearInterval(this.reminderInterval);
@@ -417,8 +325,6 @@ class HabitTracker {
     }
   }
 
-  // Method untuk menyimpan data ke file
-  // KONSEP: JSON.stringify, fs
   saveToFile() {
     try {
       const data = {
@@ -426,7 +332,6 @@ class HabitTracker {
         habits: this.habits,
       };
 
-      // KONSEP: JSON.stringify - convert object ke JSON string
       const jsonData = JSON.stringify(data, null, 2);
       fs.writeFileSync(DATA_FILE, jsonData, 'utf8');
     } catch (error) {
@@ -434,19 +339,14 @@ class HabitTracker {
     }
   }
 
-  // Method untuk load data dari file
-  // KONSEP: JSON.parse, fs
   loadFromFile() {
     try {
       if (fs.existsSync(DATA_FILE)) {
         const jsonData = fs.readFileSync(DATA_FILE, 'utf8');
-        // KONSEP: JSON.parse - convert JSON string ke object
         const data = JSON.parse(jsonData);
 
-        // Restore user profile
         Object.assign(userProfile, data.userProfile);
 
-        // Restore habits dengan proper class instances
         this.habits = data.habits.map((habitData) => {
           const habit = new Habit(habitData.name, habitData.targetFrequency);
           Object.assign(habit, habitData);
@@ -459,7 +359,6 @@ class HabitTracker {
     }
   }
 
-  // Method untuk menghapus semua data
   clearAllData() {
     this.habits = [];
     userProfile.totalHabits = 0;
@@ -472,7 +371,6 @@ class HabitTracker {
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
-// TODO: Buat function askQuestion(question)
 function askQuestion(question) {
   return new Promise((resolve) => {
     rl.question(question, (answer) => {
@@ -496,7 +394,6 @@ function displayBanner() {
   displaySeparator();
 }
 
-// TODO: Buat function displayMenu()
 function displayMenu() {
   displaySeparator(true);
   console.log('HABIT TRACKER - MAIN MENU');
@@ -514,7 +411,6 @@ function displayMenu() {
   displaySeparator(false, true);
 }
 
-// TODO: Buat async function handleMenu(tracker)
 async function handleMenu(tracker) {
   let running = true;
 
@@ -591,7 +487,6 @@ async function handleMenu(tracker) {
 // ============================================
 // MAIN FUNCTION
 // ============================================
-// TODO: Buat async function main()
 async function main() {
   console.clear();
 
@@ -616,7 +511,6 @@ async function main() {
   await handleMenu(tracker);
 }
 
-// TODO: Jalankan main() dengan error handling
 main().catch((error) => {
   console.error('\nFatal Error:', error.message);
   rl.close();
